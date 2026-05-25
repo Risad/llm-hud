@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { useAnalytics } from '../hooks/useUsageQuery'
+import { useAnalytics, useRefreshProjects } from '../hooks/useUsageQuery'
 import TimeFramePicker from '../components/TimeFramePicker'
 import TokenTimeSeriesChart from '../components/charts/TokenTimeSeriesChart'
 import CostByModelChart from '../components/charts/CostByModelChart'
 import UsageHeatmap from '../components/charts/UsageHeatmap'
 import ModelComparisonChart from '../components/charts/ModelComparisonChart'
+import { formatModelName } from '../utils/modelNames'
+import { RefreshCw } from 'lucide-react'
 import type { ProjectRow, ProjectModelRow } from '../api/client'
 
 type ChartMode = 'tokens' | 'cost'
@@ -37,8 +39,13 @@ function ProjectCell({ row }: { row: ProjectRow | ProjectModelRow }) {
 
 export default function Analytics() {
   const { data, isLoading } = useAnalytics()
+  const refreshProjects = useRefreshProjects()
   const [chartMode, setChartMode] = useState<ChartMode>('tokens')
   const [pivotMode, setPivotMode] = useState<'project-rows' | 'model-rows'>('project-rows')
+
+  const hasUnresolvedProjects = data?.by_project.some(
+    p => p.project_name === p.project_id && p.project_id.startsWith('proj_')
+  ) ?? false
 
   // Build a pivot structure: rows = projects, columns = models (or vice-versa)
   const buildPivot = (rows: ProjectModelRow[]) => {
@@ -88,6 +95,20 @@ export default function Analytics() {
 
       {data && (
         <>
+          {hasUnresolvedProjects && (
+            <div className="flex items-center justify-between bg-amber-900/10 border border-amber-800/40 rounded-lg px-4 py-2.5 text-xs text-amber-300">
+              <span>Project IDs are showing instead of names — sync project names from OpenAI.</span>
+              <button
+                className="flex items-center gap-1.5 ml-4 text-amber-300 hover:text-amber-100 font-medium shrink-0"
+                disabled={refreshProjects.isPending}
+                onClick={() => refreshProjects.mutate()}
+              >
+                <RefreshCw size={12} className={refreshProjects.isPending ? 'animate-spin' : ''} />
+                {refreshProjects.isPending ? 'Syncing…' : 'Sync now'}
+              </button>
+            </div>
+          )}
+
           {/* Token / Cost over time */}
           <div className="card h-72">
             <h3 className="text-xs font-semibold text-slate-400 mb-3">
@@ -143,7 +164,7 @@ export default function Analytics() {
               <tbody>
                 {data.by_model.map(row => (
                   <tr key={row.model} className="border-b border-surface-border/40 hover:bg-surface-border/10">
-                    <td className="py-2 text-slate-200 font-mono text-xs">{row.model}</td>
+                    <td className="py-2 text-slate-200 font-mono text-xs" title={row.model}>{formatModelName(row.model)}</td>
                     <td className="py-2 text-right text-slate-400 text-xs">{row.input_tokens.toLocaleString()}</td>
                     <td className="py-2 text-right text-slate-400 text-xs">{row.output_tokens.toLocaleString()}</td>
                     <td className="py-2 text-right text-slate-300">{row.tokens.toLocaleString()}</td>
@@ -296,11 +317,11 @@ function PivotByProject({ rows, chartMode }: { rows: ProjectModelRow[]; chartMod
       <thead>
         <tr className="text-slate-500 border-b border-surface-border">
           <th className="text-left pb-2 font-medium pr-4">Project</th>
-          {modelList.map(m => (
+          {modelList.map(m => { const n = formatModelName(m); return (
             <th key={m} className="text-right pb-2 font-medium px-2 max-w-28 truncate" title={m}>
-              {m.length > 14 ? m.slice(0, 12) + '…' : m}
+              {n.length > 14 ? n.slice(0, 12) + '…' : n}
             </th>
-          ))}
+          )}}
           <th className="text-right pb-2 font-medium px-2">Total</th>
         </tr>
       </thead>
@@ -415,7 +436,7 @@ function PivotByModel({ rows, chartMode }: { rows: ProjectModelRow[]; chartMode:
           const rowTotal = [...projects.values()].reduce((s, v) => s + (chartMode === 'cost' ? v.cost : v.tokens), 0)
           return (
             <tr key={model} className="border-b border-surface-border/30 hover:bg-surface-border/10">
-              <td className="py-2 pr-4 font-mono text-slate-300">{model}</td>
+              <td className="py-2 pr-4 font-mono text-slate-300" title={model}>{formatModelName(model)}</td>
               {projectList.map(([pid]) => {
                 const v = projects.get(pid)
                 const val = v ? (chartMode === 'cost' ? v.cost : v.tokens) : 0

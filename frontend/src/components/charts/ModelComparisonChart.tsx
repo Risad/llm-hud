@@ -1,6 +1,7 @@
 import ReactECharts from 'echarts-for-react'
 import { useMemo } from 'react'
 import type { AnalyticsSummary } from '../../api/client'
+import { formatModelName } from '../../utils/modelNames'
 
 interface Props {
   data: AnalyticsSummary['by_model']
@@ -34,7 +35,7 @@ export default function ModelComparisonChart({ data }: Props) {
     },
     yAxis: {
       type: 'category',
-      data: items.map(d => d.model.length > 18 ? d.model.slice(0, 18) + '…' : d.model),
+      data: items.map(d => { const n = formatModelName(d.model); return n.length > 18 ? n.slice(0, 18) + '…' : n }),
       axisLabel: { color: '#94a3b8', fontSize: 11 },
       axisLine: { lineStyle: { color: '#334155' } },
     },

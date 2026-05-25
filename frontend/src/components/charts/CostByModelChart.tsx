@@ -1,6 +1,7 @@
 import ReactECharts from 'echarts-for-react'
 import { useMemo } from 'react'
 import type { AnalyticsSummary } from '../../api/client'
+import { formatModelName } from '../../utils/modelNames'
 
 const COLORS = ['#6366f1', '#22d3ee', '#a78bfa', '#34d399', '#f59e0b', '#f87171', '#60a5fa', '#fb923c']
 
@@ -41,7 +42,7 @@ export default function CostByModelChart({ data, mode = 'cost' }: Props) {
       label: { show: false },
       emphasis: { label: { show: false } },
       data: items.map((d, i) => ({
-        name: d.model,
+        name: formatModelName(d.model),
         value: mode === 'cost' ? d.cost : d.tokens,
         itemStyle: { color: COLORS[i % COLORS.length] },
       })),

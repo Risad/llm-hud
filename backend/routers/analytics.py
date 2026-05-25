@@ -20,7 +20,7 @@ def _parse_range(range_str: str, start: date | None, end: date | None) -> tuple[
     if start:
         return start, e
     days = RANGE_DAYS.get(range_str, 30)
-    return e - timedelta(days=days), e
+    return e - timedelta(days=days - 1), e
 
 
 @router.get("/summary", response_model=AnalyticsSummary)
