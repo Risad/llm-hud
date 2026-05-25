@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default function ModelComparisonChart({ data }: Props) {
-  const items = data.slice(0, 10)
+  const items = data
 
   const option = useMemo(() => ({
     backgroundColor: 'transparent',

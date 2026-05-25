@@ -10,8 +10,15 @@ interface Props {
   mode?: 'cost' | 'tokens'
 }
 
+const TOP_N = 7
+
 export default function CostByModelChart({ data, mode = 'cost' }: Props) {
-  const items = data.slice(0, 8)
+  const top = data.slice(0, TOP_N)
+  const rest = data.slice(TOP_N)
+  const restVal = (key: 'cost' | 'tokens') => rest.reduce((s, d) => s + d[key], 0)
+  const items = rest.length > 0
+    ? [...top, { model: 'Others', tokens: restVal('tokens'), cost: restVal('cost'), input_tokens: 0, output_tokens: 0 }]
+    : top
 
   const option = useMemo(() => ({
     backgroundColor: 'transparent',

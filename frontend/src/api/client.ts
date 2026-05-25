@@ -71,6 +71,7 @@ export interface ProjectRow {
 export interface ProjectModelRow {
   project_id: string
   project_name: string
+  project_status: string | null
   model: string
   tokens: number
   cost: number

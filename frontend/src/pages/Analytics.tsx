@@ -105,16 +105,34 @@ export default function Analytics() {
       {data && (
         <>
           {hasUnresolvedProjects && (
-            <div className="flex items-center justify-between bg-amber-900/10 border border-amber-800/40 rounded-lg px-4 py-2.5 text-xs text-amber-300">
-              <span>Project IDs are showing instead of names — sync project names from OpenAI.</span>
-              <button
-                className="flex items-center gap-1.5 ml-4 text-amber-300 hover:text-amber-100 font-medium shrink-0"
-                disabled={refreshProjects.isPending}
-                onClick={() => refreshProjects.mutate()}
-              >
-                <RefreshCw size={12} className={refreshProjects.isPending ? 'animate-spin' : ''} />
-                {refreshProjects.isPending ? 'Syncing…' : 'Sync now'}
-              </button>
+            <div className="bg-amber-900/10 border border-amber-800/40 rounded-lg px-4 py-3 text-xs space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-amber-300 font-medium">
+                  {refreshProjects.isPending
+                    ? 'Fetching project names from OpenAI…'
+                    : refreshProjects.error
+                    ? 'Could not fetch project names — requires an Admin API key'
+                    : 'Project IDs are showing instead of names'}
+                </span>
+                <button
+                  className="flex items-center gap-1.5 ml-4 text-amber-300 hover:text-amber-100 font-medium shrink-0"
+                  disabled={refreshProjects.isPending}
+                  onClick={() => refreshProjects.mutate()}
+                >
+                  <RefreshCw size={12} className={refreshProjects.isPending ? 'animate-spin' : ''} />
+                  {refreshProjects.isPending ? 'Syncing…' : 'Retry sync'}
+                </button>
+              </div>
+              {refreshProjects.error && (
+                <p className="text-red-400 font-mono text-[10px]">
+                  {(refreshProjects.error as Error).message}
+                </p>
+              )}
+              {!refreshProjects.error && !refreshProjects.isPending && (
+                <p className="text-amber-400/70">
+                  Go to Settings → OpenAI Projects → "Sync from OpenAI" using an Admin API key to resolve names.
+                </p>
+              )}
             </div>
           )}
 
@@ -158,7 +176,14 @@ export default function Analytics() {
 
           {/* Model breakdown table */}
           <div className="card overflow-x-auto">
-            <h3 className="text-xs font-semibold text-slate-400 mb-3">Breakdown by model</h3>
+            <div className="flex items-baseline justify-between mb-3">
+              <h3 className="text-xs font-semibold text-slate-400">Breakdown by model</h3>
+              {data.by_model.some(r => r.model === 'unknown') && (
+                <span className="text-[10px] text-slate-500" title="'unknown' rows are older records fetched before per-model tracking was enabled. Run a backfill to refresh them.">
+                  * "unknown" = pre-fix records — run a backfill to refresh
+                </span>
+              )}
+            </div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-slate-500 border-b border-surface-border">
@@ -200,7 +225,14 @@ export default function Analytics() {
           {/* Project breakdown */}
           {data.by_project.length > 0 && (
             <div className="card overflow-x-auto">
-              <h3 className="text-xs font-semibold text-slate-400 mb-3">Breakdown by project</h3>
+              <div className="flex items-baseline justify-between mb-3">
+                <h3 className="text-xs font-semibold text-slate-400">Breakdown by project</h3>
+                {data.by_project.some(p => p.project_id === 'unknown') && (
+                  <span className="text-[10px] text-slate-500" title="Usage not tied to any OpenAI project (org-level or unassigned API keys).">
+                    * "unknown" = org-level usage not tied to a project
+                  </span>
+                )}
+              </div>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-xs text-slate-500 border-b border-surface-border">

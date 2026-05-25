@@ -135,6 +135,9 @@ async def summary(
         {
             "project_id": r.project_id or "unknown",
             "project_name": project_cache.get_project_name(r.project_id) or (r.project_id or "unknown"),
+            "project_status": next(
+                (p["status"] for p in project_cache.all_projects() if p["id"] == r.project_id), None
+            ),
             "model": r.model,
             "tokens": r.tokens or 0,
             "cost": round(r.cost or 0, 6),
