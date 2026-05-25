@@ -63,14 +63,15 @@ async def refresh_from_api(api_key: str) -> list[dict]:
     async with httpx.AsyncClient(timeout=15) as client:
         while True:
             r = await client.get(url, headers=headers, params=params)
-            if r.status_code == 403:
+            if r.status_code in (401, 403):
                 raise PermissionError(
-                    "403 Forbidden — this key cannot list organization projects. "
-                    "Use an Admin API key."
+                    f"HTTP {r.status_code} — Admin API key required to list organization projects. "
+                    "Create one at: platform.openai.com → Settings → API Keys → Admin keys."
                 )
             if not r.is_success:
-                logger.warning("OpenAI projects API %s: %s", r.status_code, r.text[:200])
-                break
+                raise RuntimeError(
+                    f"OpenAI projects API returned HTTP {r.status_code}: {r.text[:300]}"
+                )
             data = r.json()
             for p in data.get("data", []):
                 pid = p.get("id", "")

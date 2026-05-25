@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
-import { useAnalytics, useRefreshProjects } from '../hooks/useUsageQuery'
+import { useAnalytics, useRefreshProjects, useBackfill } from '../hooks/useUsageQuery'
+import { useStore } from '../store'
 import TimeFramePicker from '../components/TimeFramePicker'
 import TokenTimeSeriesChart from '../components/charts/TokenTimeSeriesChart'
 import CostByModelChart from '../components/charts/CostByModelChart'
 import UsageHeatmap from '../components/charts/UsageHeatmap'
 import ModelComparisonChart from '../components/charts/ModelComparisonChart'
 import { formatModelName } from '../utils/modelNames'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, AlertCircle } from 'lucide-react'
 import type { ProjectRow, ProjectModelRow } from '../api/client'
 
 type ChartMode = 'tokens' | 'cost'
@@ -40,12 +41,22 @@ function ProjectCell({ row }: { row: ProjectRow | ProjectModelRow }) {
 export default function Analytics() {
   const { data, isLoading } = useAnalytics()
   const refreshProjects = useRefreshProjects()
+  const backfill = useBackfill()
+  const { activeWorkspaceId, apiKeys } = useStore(s => ({ activeWorkspaceId: s.activeWorkspaceId, apiKeys: s.apiKeys }))
   const [chartMode, setChartMode] = useState<ChartMode>('tokens')
   const [pivotMode, setPivotMode] = useState<'project-rows' | 'model-rows'>('project-rows')
 
   const hasUnresolvedProjects = data?.by_project.some(
     p => p.project_name === p.project_id && p.project_id.startsWith('proj_')
   ) ?? false
+
+  const hasUnknownModels = data?.by_model.some(r => r.model === 'unknown') ?? false
+
+  const activeKeyIds = apiKeys.filter(k => k.is_active && k.workspace_id === activeWorkspaceId).map(k => k.id)
+
+  const handleBackfill = () => {
+    activeKeyIds.forEach(id => backfill.mutate({ apiKeyId: id, days: 90 }))
+  }
 
   // Auto-sync project names once when unresolved IDs are detected
   const autoSyncedRef = useRef(false)
@@ -136,6 +147,23 @@ export default function Analytics() {
             </div>
           )}
 
+          {hasUnknownModels && (
+            <div className="flex items-center justify-between bg-blue-900/10 border border-blue-800/40 rounded-lg px-4 py-2.5 text-xs">
+              <div className="flex items-center gap-2 text-blue-300">
+                <AlertCircle size={13} />
+                <span>Some records have <strong>"unknown"</strong> model — these are from before per-model tracking was enabled. Run a backfill to replace them with real model names.</span>
+              </div>
+              <button
+                className="flex items-center gap-1.5 ml-4 text-blue-300 hover:text-blue-100 font-medium shrink-0"
+                disabled={backfill.isPending || activeKeyIds.length === 0}
+                onClick={handleBackfill}
+              >
+                <RefreshCw size={12} className={backfill.isPending ? 'animate-spin' : ''} />
+                {backfill.isPending ? 'Backfilling…' : 'Backfill 90 days'}
+              </button>
+            </div>
+          )}
+
           {/* Token / Cost over time */}
           <div className="card h-72">
             <h3 className="text-xs font-semibold text-slate-400 mb-3">
@@ -176,14 +204,7 @@ export default function Analytics() {
 
           {/* Model breakdown table */}
           <div className="card overflow-x-auto">
-            <div className="flex items-baseline justify-between mb-3">
-              <h3 className="text-xs font-semibold text-slate-400">Breakdown by model</h3>
-              {data.by_model.some(r => r.model === 'unknown') && (
-                <span className="text-[10px] text-slate-500" title="'unknown' rows are older records fetched before per-model tracking was enabled. Run a backfill to refresh them.">
-                  * "unknown" = pre-fix records — run a backfill to refresh
-                </span>
-              )}
-            </div>
+            <h3 className="text-xs font-semibold text-slate-400 mb-3">Breakdown by model</h3>
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-slate-500 border-b border-surface-border">

@@ -1,5 +1,6 @@
 from __future__ import annotations
 import logging
+import urllib.parse
 from datetime import date, datetime, timezone
 from typing import Any
 import httpx
@@ -63,26 +64,29 @@ class OpenAIProvider(BaseProvider):
     ) -> tuple[list[UsageEntry], bool]:
         """Returns (entries, was_forbidden).
 
-        Always requests group_by[]=project_id so each result carries its
-        OpenAI project. Pagination carries all required params on every page.
+        Requests group_by[]=project_id&group_by[]=model so each result
+        carries both project and model. The URL is pre-built as a string to
+        avoid httpx percent-encoding the [] brackets in the key name.
+        Pagination carries all required params on every page.
         """
         LIMIT = 31  # OpenAI caps daily-bucket requests at 31 per page
-        # Base params are kept on every page (including pagination pages).
-        # group_by[] list produces ?group_by[]=project_id&group_by[]=model
-        base_params: dict[str, Any] = {
+        base_qs = urllib.parse.urlencode({
             "start_time": start_ts,
             "end_time": end_ts,
             "bucket_width": "1d",
             "limit": LIMIT,
-            "group_by[]": ["project_id", "model"],
-        }
-        params: dict[str, Any] = dict(base_params)
-        url = f"{OPENAI_BASE}/v1/organization/usage/{category}"
+        })
+        # Append group_by[] manually so brackets are NOT percent-encoded
+        base_url = (
+            f"{OPENAI_BASE}/v1/organization/usage/{category}"
+            f"?{base_qs}&group_by[]=project_id&group_by[]=model"
+        )
+        page_url: str | None = base_url
         entries: list[UsageEntry] = []
 
-        while url:
+        while page_url:
             try:
-                r = await client.get(url, headers=self._headers(), params=params)
+                r = await client.get(page_url, headers=self._headers())
                 if r.status_code == 403:
                     logger.warning("OpenAI 403 on %s — key lacks org-level permissions", category)
                     return entries, True
@@ -121,13 +125,9 @@ class OpenAIProvider(BaseProvider):
                         cached_tokens=cached_t,
                     ))
 
-            # Pagination: keep ALL base params and add the cursor.
-            # OpenAI still requires start_time on every page.
+            # Pagination: append cursor to the base URL (keeps all params).
             next_page = data.get("next_page")
-            if next_page:
-                params = {**base_params, "page": next_page}
-            else:
-                break
+            page_url = f"{base_url}&page={next_page}" if next_page else None
 
         return entries, False
 

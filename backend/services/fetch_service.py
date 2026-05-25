@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import date, datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, delete
 
 from backend.models.api_key import APIKey
 from backend.models.usage_record import UsageRecord
@@ -43,6 +43,22 @@ async def fetch_and_store(
                 if entry.project_id is None
                 else UsageRecord.project_id == entry.project_id
             )
+
+            # If we now have a real model name, purge any legacy "unknown"
+            # records for the same slot so they don't pollute aggregates.
+            if entry.model != "unknown":
+                await db.execute(
+                    delete(UsageRecord).where(
+                        and_(
+                            UsageRecord.api_key_id == api_key_row.id,
+                            UsageRecord.usage_date == entry.usage_date,
+                            UsageRecord.model == "unknown",
+                            UsageRecord.source == source,
+                            project_filter,
+                        )
+                    )
+                )
+
             existing = await db.execute(
                 select(UsageRecord).where(
                     and_(
