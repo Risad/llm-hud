@@ -68,12 +68,13 @@ class OpenAIProvider(BaseProvider):
         """
         LIMIT = 31  # OpenAI caps daily-bucket requests at 31 per page
         # Base params are kept on every page (including pagination pages).
+        # group_by[] list produces ?group_by[]=project_id&group_by[]=model
         base_params: dict[str, Any] = {
             "start_time": start_ts,
             "end_time": end_ts,
             "bucket_width": "1d",
             "limit": LIMIT,
-            "group_by[]": "project_id",
+            "group_by[]": ["project_id", "model"],
         }
         params: dict[str, Any] = dict(base_params)
         url = f"{OPENAI_BASE}/v1/organization/usage/{category}"

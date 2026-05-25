@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAnalytics, useRefreshProjects } from '../hooks/useUsageQuery'
 import TimeFramePicker from '../components/TimeFramePicker'
 import TokenTimeSeriesChart from '../components/charts/TokenTimeSeriesChart'
@@ -46,6 +46,15 @@ export default function Analytics() {
   const hasUnresolvedProjects = data?.by_project.some(
     p => p.project_name === p.project_id && p.project_id.startsWith('proj_')
   ) ?? false
+
+  // Auto-sync project names once when unresolved IDs are detected
+  const autoSyncedRef = useRef(false)
+  useEffect(() => {
+    if (hasUnresolvedProjects && !autoSyncedRef.current && !refreshProjects.isPending) {
+      autoSyncedRef.current = true
+      refreshProjects.mutate()
+    }
+  }, [hasUnresolvedProjects])
 
   // Build a pivot structure: rows = projects, columns = models (or vice-versa)
   const buildPivot = (rows: ProjectModelRow[]) => {
@@ -419,13 +428,13 @@ function PivotByModel({ rows, chartMode }: { rows: ProjectModelRow[]; chartMode:
           <th className="text-left pb-2 font-medium pr-4">Model</th>
           {projectList.map(([pid, name]) => (
             <th key={pid} className="text-right pb-2 font-medium px-2 max-w-28" title={pid}>
-              {name !== pid
-                ? <span className="group relative inline-block cursor-default">
-                    <span>{name.length > 12 ? name.slice(0, 10) + '…' : name}</span>
-                    <span className="absolute left-0 top-full mt-1 z-50 hidden group-hover:block bg-slate-800 border border-surface-border rounded px-2 py-1 font-mono whitespace-nowrap shadow-lg">{pid}</span>
-                  </span>
-                : pid.slice(-8)
-              }
+              <span className="group relative inline-block cursor-default">
+                <span>{name !== pid
+                  ? (name.length > 12 ? name.slice(0, 10) + '…' : name)
+                  : (pid.length > 12 ? '…' + pid.slice(-10) : pid)
+                }</span>
+                <span className="absolute left-0 top-full mt-1 z-50 hidden group-hover:block bg-slate-800 border border-surface-border rounded px-2 py-1 font-mono whitespace-nowrap shadow-lg text-slate-300">{pid}</span>
+              </span>
             </th>
           ))}
           <th className="text-right pb-2 font-medium px-2">Total</th>
