@@ -1,0 +1,8 @@
+# Tell Google Drive not to sync these directories
+# (large binary/cache directories that should be local-only)
+frontend/node_modules
+.venv
+__pycache__
+*.db
+*.db-shm
+*.db-wal

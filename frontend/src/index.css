@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Theme tokens ─────────────────────────────────────────────────────────────
+   All values are R G B triples (no commas) so Tailwind's <alpha-value>
+   substitution works correctly, e.g. bg-slate-100/50.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Dark theme (default) */
+  --surface:        15  23  42;   /* #0f172a  slate-900 */
+  --surface-card:   30  41  59;   /* #1e293b  slate-800 */
+  --surface-border: 51  65  85;   /* #334155  slate-700 */
+  --surface-muted:  71  85 105;   /* #475569  slate-600 */
+
+  /* Slate text scale — dark reads bright, so lower numbers = lighter */
+  --sl-50:  248 250 252;
+  --sl-100: 241 245 249;
+  --sl-200: 226 232 240;
+  --sl-300: 203 213 225;
+  --sl-400: 148 163 184;
+  --sl-500: 100 116 139;
+  --sl-600:  71  85 105;
+  --sl-700:  51  65  85;
+  --sl-800:  30  41  59;
+  --sl-900:  15  23  42;
+  --sl-950:   2   6  23;
+
+  /* Accent (indigo-500 by default — overridden by color picker) */
+  --accent:     99 102 241;   /* indigo-500 */
+  --accent-dim: 79  70 229;   /* indigo-600 */
+}
+
+[data-theme="light"] {
+  /* Surfaces */
+  --surface:        248 250 252;   /* slate-50  */
+  --surface-card:   255 255 255;   /* white     */
+  --surface-border: 226 232 240;   /* slate-200 */
+  --surface-muted:  148 163 184;   /* slate-400 */
+
+  /* Slate scale flipped: low numbers = dark text, high numbers = light bg */
+  --sl-50:    15  23  42;
+  --sl-100:   15  23  42;   /* headings / primary text */
+  --sl-200:   30  41  59;
+  --sl-300:   51  65  85;
+  --sl-400:   71  85 105;
+  --sl-500:  100 116 139;
+  --sl-600:  148 163 184;
+  --sl-700:  203 213 225;
+  --sl-800:  226 232 240;
+  --sl-900:  241 245 249;
+  --sl-950:  248 250 252;
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  html, body, #root {
+    @apply h-full;
+  }
+  body {
+    @apply bg-surface text-slate-100 antialiased;
+    transition: background-color 0.2s, color 0.2s;
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-surface; }
+  ::-webkit-scrollbar-thumb { @apply bg-surface-border rounded; }
+}
+
+/* ── Component utilities ──────────────────────────────────────────────────── */
+
+@layer components {
+  .card {
+    @apply bg-surface-card border border-surface-border rounded-xl p-5;
+  }
+  .btn-primary {
+    @apply bg-accent-dim hover:bg-accent text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-ghost {
+    @apply text-slate-400 hover:text-slate-100 hover:bg-surface-border/20 text-sm px-3 py-1.5 rounded-lg transition-colors;
+  }
+  .input {
+    @apply bg-surface border border-surface-border text-slate-100 placeholder-surface-muted rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-accent;
+  }
+  .label {
+    @apply text-xs font-medium text-slate-400 mb-1 block;
+  }
+  .stat-card {
+    @apply card flex flex-col gap-1;
+  }
+  .stat-value {
+    @apply text-2xl font-bold text-slate-100;
+  }
+  .stat-label {
+    @apply text-xs text-slate-400;
+  }
+}

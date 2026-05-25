@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+build/
+.pytest_cache/
+
+# Database & user data (stored in ~/.llm-hud/, never in the repo)
+*.db
+*.db-shm
+*.db-wal
+*.key
+prices.json
+projects.json
+
+# Environment secrets
+.env
+.env.local
+
+# Node
+frontend/node_modules/
+frontend/.vite/
+# frontend/dist/ is intentionally committed so the app runs without a build step
+
+# IDE & tools
+.vscode/
+.idea/
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
